@@ -1,0 +1,18 @@
+* Navigation
+#+BEGIN_EXAMPLE
+              M-v
+              C-p
+               |
+C-a M-b C-b <- * -> C-f M-f C-e
+               | 
+              C-n
+              C-v
+#+END_EXAMPLE
+
+* Search
+`C-s C-w` to search word under cursor
+
+* Mark
+`C-SPC` to start mark
+`C-x h` mark whole buffer
+`C-x SPC` start mark rectangle

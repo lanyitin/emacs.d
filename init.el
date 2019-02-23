@@ -61,6 +61,7 @@ tangled, and the tangled file is compiled."
           slime                ; Superior Lisp Interaction Mode for Emacs
           try                  ; Try out Emacs packages
           monokai-theme        ; monokai theme
+          writeroom-mode       ; a mode that good for writing
           which-key)))         ; Display available keybindings in popup
   (ignore-errors ;; This package is only relevant for Mac OS X.
     (when (memq window-system '(mac ns))
@@ -492,6 +493,25 @@ given, the duplicated region will be commented out."
        (define-key map (kbd "C-+") 'global-scale-up)
        (define-key map (kbd "C--") 'global-scale-down)
        (define-key map (kbd "C-0") 'global-scale-default) map))))
+
+(setq initial-major-mode (quote org-mode))
+(defun lanyitin-new-empty-buffer()
+  "create a new empty buffer with org mode"
+  (interactive)
+  (let (($buf (generate-new-buffer "untitled")))
+    (switch-to-buffer $buf)
+    (funcall initial-major-mode)
+    (setq buffer-offer-save t)
+    (let ((tplPath "~/.emacs.d/init-buffer.tpl.org"))
+      (when (file-exists-p tplPath)
+       (with-current-buffer $buf
+         (insert-file-contents tplPath)
+       )
+      )
+    )
+    $buf
+))
+(setq initial-buffer-choice 'lanyitin-new-empty-buffer)
 
 (add-hook 'compilation-filter-hook 'comint-truncate-buffer)
 
