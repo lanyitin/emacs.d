@@ -49,14 +49,12 @@ tangled, and the tangled file is compiled."
           helm-swoop           ; Efficiently hopping squeezed lines
           magit                ; control Git from Emacs
           markdown-mode        ; Emacs Major mode for Markdown-formatted files
-          material-theme       ; A Theme based on Google Material Design
           multiple-cursors     ; Multiple cursors for Emacs
           olivetti             ; Minor mode for a nice writing environment
           org                  ; Outline-based notes management and organizer
           org-plus-contrib     ; contains these files plus all contribs files
           org-ref              ; citations bibliographies in org-mode
-          paredit              ; minor mode for editing parentheses
-          pdf-tools            ; Emacs support library for PDF files
+          paredit              ; minor mode for editing 
           projectile           ; Manage and navigate projects in Emacs easily
           slime                ; Superior Lisp Interaction Mode for Emacs
           try                  ; Try out Emacs packages
@@ -72,15 +70,6 @@ tangled, and the tangled file is compiled."
         ;; Install uninstalled packages
         (package-refresh-contents)
         (mapc 'package-install packages)))))
-
-(when (memq window-system '(mac ns))
-  (setq ns-pop-up-frames nil
-        mac-option-modifier nil
-        mac-command-modifier 'meta
-        x-select-enable-clipboard t)
-  (exec-path-from-shell-initialize)
-  (when (fboundp 'mac-auto-operator-composition-mode)
-    (mac-auto-operator-composition-mode 1)))'
 
 (require 'idle-require)             ; Need in order to use idle-require
 
@@ -160,12 +149,15 @@ tangled, and the tangled file is compiled."
            projectile-global-mode       ; Manage and navigate projects
            recentf-mode                 ; Recently opened files
            show-paren-mode              ; Highlight matching parentheses
+           ;display-line-numbers-mode     ; mode that show line's number (for version>26)
            which-key-mode))             ; Available keybindings in popup
   (funcall mode 1))
 
 (when (version< emacs-version "24.4")
   (eval-after-load 'auto-compile
     '((auto-compile-on-save-mode 1))))  ; compile .el files on save
+(when (version<= "26.0.50" emacs-version )
+   (global-display-line-numbers-mode))
 
 (load-theme 'monokai t)
 
@@ -206,9 +198,6 @@ tangled, and the tangled file is compiled."
                                        ("gamma" . ?Γ)
                                        ("phi" . ?φ)
                                        ("psi" . ?ψ)))
-
-(add-hook 'pdf-tools-enabled-hook 'auto-revert-mode)
-(add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-tools-install))
 
 (setq company-idle-delay 0
       company-echo-delay 0
@@ -274,55 +263,6 @@ tangled, and the tangled file is compiled."
       calendar-latitude 60.0
       calendar-longitude 10.7
       calendar-location-name "Oslo, Norway")
-
-(defvar load-mail-setup (file-exists-p "~/.ifimail"))
-
-(when load-mail-setup
-  (eval-after-load 'mu4e
-    '(progn
-       ;; Some basic mu4e settings.
-       (setq mu4e-maildir           "~/.ifimail"     ; top-level Maildir
-             mu4e-sent-folder       "/Sent Items"    ; folder for sent messages
-             mu4e-drafts-folder     "/INBOX.Drafts"  ; unfinished messages
-             mu4e-trash-folder      "/INBOX.Trash"   ; trashed messages
-             mu4e-get-mail-command  "offlineimap"    ; offlineimap to fetch mail
-             mu4e-compose-signature "- Lars"         ; Sign my name
-             mu4e-update-interval   (* 5 60)         ; update every 5 min
-             mu4e-confirm-quit      nil              ; just quit
-             mu4e-view-show-images  t                ; view images
-             mu4e-html2text-command
-             "html2text -utf8")                      ; use utf-8
-
-       ;; Setup for sending mail.
-       (setq user-full-name
-             "Lars Tveito"                          ; Your full name
-             user-mail-address
-             "larstvei@ifi.uio.no"                  ; And email-address
-             smtpmail-smtp-server
-             "smtp.uio.no"                          ; Host to mail-server
-             smtpmail-smtp-service 465              ; Port to mail-server
-             smtpmail-stream-type 'ssl              ; Protocol used for sending
-             send-mail-function 'smtpmail-send-it   ; Use smpt to send
-             mail-user-agent 'mu4e-user-agent)      ; Use mu4e
-
-       ;; Register file types that can be handled by ImageMagick.
-       (when (fboundp 'imagemagick-register-types)
-         (imagemagick-register-types))
-
-       (add-hook 'mu4e-compose-mode-hook
-                 (lambda ()
-                   (auto-fill-mode 0)
-                   (visual-line-mode 1)
-                   (ispell-change-dictionary "norsk")))
-
-       (add-hook 'mu4e-view-mode-hook (lambda () (visual-line-mode 1)))
-
-       (defun message-insert-signature ()
-         (goto-char (point-min))
-         (search-forward-regexp "^$")
-         (insert "\n\n\n" mu4e-compose-signature))))
-
-  (autoload 'mu4e "mu4e" nil t))
 
 (add-hook 'text-mode-hook 'turn-on-flyspell)
 
@@ -501,7 +441,7 @@ given, the duplicated region will be commented out."
   (let (($buf (generate-new-buffer "untitled")))
     (switch-to-buffer $buf)
     (funcall initial-major-mode)
-    (setq buffer-offer-save t)
+;    (setq buffer-offer-save t)
     (let ((tplPath "~/.emacs.d/init-buffer.tpl.org"))
       (when (file-exists-p tplPath)
        (with-current-buffer $buf
@@ -608,51 +548,6 @@ given, the duplicated region will be commented out."
 
 (add-hook 'java-mode-hook 'java-setup)
 
-(defun asm-setup ()
-  (setq comment-start "#")
-  (local-set-key (kbd "C-c C-c") 'compile))
-
-(add-hook 'asm-mode-hook 'asm-setup)
-
-(add-to-list 'auto-mode-alist '("\\.tex\\'" . latex-mode))
-
-(setq-default bibtex-dialect 'biblatex)
-
-(eval-after-load 'org
-  '(add-to-list 'org-latex-packages-alist '("" "minted")))
-(setq org-latex-listings 'minted)
-
-(eval-after-load 'tex-mode
-  '(setcar (cdr (cddaar tex-compile-commands)) " -shell-escape "))
-
-(eval-after-load 'ox-latex
-  '(setq org-latex-pdf-process
-         '("latexmk -pdflatex='pdflatex -shell-escape -interaction nonstopmode' -pdf -f %f")))
-
-(eval-after-load "ox-latex"
-  '(progn
-     (add-to-list 'org-latex-classes
-                  '("ifimaster"
-                    "\\documentclass{ifimaster}
-[DEFAULT-PACKAGES]
-[PACKAGES]
-[EXTRA]
-\\usepackage{babel,csquotes,ifimasterforside,url,varioref}"
-                   ("\\chapter{%s}" . "\\chapter*{%s}")
-                   ("\\section{%s}" . "\\section*{%s}")
-                   ("\\subsection{%s}" . "\\subsection*{%s}")
-                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-     (add-to-list 'org-latex-classes
-                  '("easychair" "\\documentclass{easychair}"
-                   ("\\section{%s}" . "\\section*{%s}")
-                   ("\\subsection{%s}" . "\\subsection*{%s}")
-                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-    (custom-set-variables '(org-export-allow-bind-keywords t))))
-
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
 (defun insert-markdown-inline-math-block ()
@@ -673,16 +568,6 @@ math-block around the region."
             (visual-line-mode 1)
             (ispell-change-dictionary "norsk")
             (local-set-key (kbd "C-c b") 'insert-markdown-inline-math-block)) t)
-
-(add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
-
-(add-hook 'maude-mode-hook
-          (lambda ()
-            (setq-local comment-start "---")))
-
-(eval-after-load 'matlab
-  '(add-to-list 'matlab-shell-command-switches "-nosplash"))
 
 (defvar custom-bindings-map (make-keymap)
   "A keymap for custom bindings.")

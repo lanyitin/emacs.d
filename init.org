@@ -151,14 +151,12 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
              helm-swoop           ; Efficiently hopping squeezed lines
              magit                ; control Git from Emacs
              markdown-mode        ; Emacs Major mode for Markdown-formatted files
-             material-theme       ; A Theme based on Google Material Design
              multiple-cursors     ; Multiple cursors for Emacs
              olivetti             ; Minor mode for a nice writing environment
              org                  ; Outline-based notes management and organizer
              org-plus-contrib     ; contains these files plus all contribs files
              org-ref              ; citations bibliographies in org-mode
-             paredit              ; minor mode for editing parentheses
-             pdf-tools            ; Emacs support library for PDF files
+             paredit              ; minor mode for editing 
              projectile           ; Manage and navigate projects in Emacs easily
              slime                ; Superior Lisp Interaction Mode for Emacs
              try                  ; Try out Emacs packages
@@ -174,26 +172,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
            ;; Install uninstalled packages
            (package-refresh-contents)
            (mapc 'package-install packages)))))
-   #+END_SRC
-
-** Mac OS X
-
-   I run this configuration mostly on Mac OS X, so we need a couple of
-   settings to make things work smoothly. In the package section
-   =exec-path-from-shell= is included (only if you're running OS X), this is
-   to include environment-variables from the shell. It makes using Emacs
-   along with external processes a lot simpler. I also prefer using the
-   =Command=-key as the =Meta=-key.
-
-   #+BEGIN_SRC emacs-lisp
-   (when (memq window-system '(mac ns))
-     (setq ns-pop-up-frames nil
-           mac-option-modifier nil
-           mac-command-modifier 'meta
-           x-select-enable-clipboard t)
-     (exec-path-from-shell-initialize)
-     (when (fboundp 'mac-auto-operator-composition-mode)
-       (mac-auto-operator-composition-mode 1)))'
    #+END_SRC
 
 ** Require
@@ -342,12 +320,15 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
               projectile-global-mode       ; Manage and navigate projects
               recentf-mode                 ; Recently opened files
               show-paren-mode              ; Highlight matching parentheses
+              ;display-line-numbers-mode     ; mode that show line's number (for version>26)
               which-key-mode))             ; Available keybindings in popup
      (funcall mode 1))
 
    (when (version< emacs-version "24.4")
      (eval-after-load 'auto-compile
        '((auto-compile-on-save-mode 1))))  ; compile .el files on save
+   (when (version<= "26.0.50" emacs-version )
+      (global-display-line-numbers-mode))
    #+END_SRC
 
 ** Visual
@@ -427,20 +408,7 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
                                           ("phi" . ?φ)
                                           ("psi" . ?ψ)))
    #+END_SRC
-
-** PDF Tools
-
-   [[https://github.com/politza/pdf-tools][PDF Tools]] makes a huge improvement on the built-in [[http://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][doc-view-mode]]; the only
-   drawback is the =pdf-tools-install= (which has to be executed before the
-   package can be used) takes a couple of /seconds/ to execute. Instead of
-   running it at init-time, we'll run it whenever a PDF is opened. Note that
-   it's only slow on the first run!
-
-   #+BEGIN_SRC emacs-lisp
-   (add-hook 'pdf-tools-enabled-hook 'auto-revert-mode)
-   (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-tools-install))
-   #+END_SRC
-
+   
 ** Completion
 
    [[https://github.com/auto-complete/auto-complete][Auto-Complete]] has been a part of my config for years, but I want to try
@@ -550,78 +518,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
          calendar-longitude 10.7
          calendar-location-name "Oslo, Norway")
    #+END_SRC
-
-** mu4e and offlineimap
-
-   I might not be at a computer using my very specific mail-setup, but if my
-   mail-folder exists, then it's probably safe to load.
-
-   #+BEGIN_SRC emacs-lisp
-   (defvar load-mail-setup (file-exists-p "~/.ifimail"))
-   #+END_SRC
-
-   I use [[http://www.djcbsoftware.nl/code/mu/mu4e.html][mu4e]] (which is a part of [[http://www.djcbsoftware.nl/code/mu/][mu]]) along with [[http://docs.offlineimap.org/en/latest/][offlineimap]] on one of my
-   computers.
-
-*** mu4e
-
-    mu4e must be informed where it can find your mail and where the
-    different folders of interest are located. Some additional mu4e-tweaks
-    are supplied here as well.
-
-    ~message-insert-signature~ is an existing Emacs function, that adds your
-    signature prefixed by a ~"-- "~ at the end of the email, which is a
-    convention I don't really follow. I redefine it as a function that adds
-    some newlines and my signature at the top of the email.
-
-    #+BEGIN_SRC emacs-lisp
-    (when load-mail-setup
-      (eval-after-load 'mu4e
-        '(progn
-           ;; Some basic mu4e settings.
-           (setq mu4e-maildir           "~/.ifimail"     ; top-level Maildir
-                 mu4e-sent-folder       "/Sent Items"    ; folder for sent messages
-                 mu4e-drafts-folder     "/INBOX.Drafts"  ; unfinished messages
-                 mu4e-trash-folder      "/INBOX.Trash"   ; trashed messages
-                 mu4e-get-mail-command  "offlineimap"    ; offlineimap to fetch mail
-                 mu4e-compose-signature "- Lars"         ; Sign my name
-                 mu4e-update-interval   (* 5 60)         ; update every 5 min
-                 mu4e-confirm-quit      nil              ; just quit
-                 mu4e-view-show-images  t                ; view images
-                 mu4e-html2text-command
-                 "html2text -utf8")                      ; use utf-8
-
-           ;; Setup for sending mail.
-           (setq user-full-name
-                 "Lars Tveito"                          ; Your full name
-                 user-mail-address
-                 "larstvei@ifi.uio.no"                  ; And email-address
-                 smtpmail-smtp-server
-                 "smtp.uio.no"                          ; Host to mail-server
-                 smtpmail-smtp-service 465              ; Port to mail-server
-                 smtpmail-stream-type 'ssl              ; Protocol used for sending
-                 send-mail-function 'smtpmail-send-it   ; Use smpt to send
-                 mail-user-agent 'mu4e-user-agent)      ; Use mu4e
-
-           ;; Register file types that can be handled by ImageMagick.
-           (when (fboundp 'imagemagick-register-types)
-             (imagemagick-register-types))
-
-           (add-hook 'mu4e-compose-mode-hook
-                     (lambda ()
-                       (auto-fill-mode 0)
-                       (visual-line-mode 1)
-                       (ispell-change-dictionary "norsk")))
-
-           (add-hook 'mu4e-view-mode-hook (lambda () (visual-line-mode 1)))
-
-           (defun message-insert-signature ()
-             (goto-char (point-min))
-             (search-forward-regexp "^$")
-             (insert "\n\n\n" mu4e-compose-signature))))
-
-      (autoload 'mu4e "mu4e" nil t))
-    #+END_SRC
 
 ** Flyspell
 
@@ -922,7 +818,7 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
   (let (($buf (generate-new-buffer "untitled")))
     (switch-to-buffer $buf)
     (funcall initial-major-mode)
-    (setq buffer-offer-save t)
+;    (setq buffer-offer-save t)
     (let ((tplPath "~/.emacs.d/init-buffer.tpl.org"))
       (when (file-exists-p tplPath)
        (with-current-buffer $buf
@@ -1134,92 +1030,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
    (add-hook 'java-mode-hook 'java-setup)
    #+END_SRC
 
-** Assembler
-
-   When writing assembler code I use =#= for comments. By defining
-   =comment-start= we can add comments using =M-;= like in other programming
-   modes. Also in assembler should one be able to compile using =C-c C-c=.
-
-   #+BEGIN_SRC emacs-lisp
-   (defun asm-setup ()
-     (setq comment-start "#")
-     (local-set-key (kbd "C-c C-c") 'compile))
-
-   (add-hook 'asm-mode-hook 'asm-setup)
-   #+END_SRC
-
-** LaTeX and org-mode LaTeX export
-
-   =.tex=-files should be associated with =latex-mode= instead of
-   =tex-mode=.
-
-   #+BEGIN_SRC emacs-lisp
-   (add-to-list 'auto-mode-alist '("\\.tex\\'" . latex-mode))
-   #+END_SRC
-
-   Use ~biblatex~ for bibliography.
-
-   #+BEGIN_SRC emacs-lisp
-   (setq-default bibtex-dialect 'biblatex)
-   #+END_SRC
-
-   I like using the [[https://code.google.com/p/minted/][Minted]] package for source blocks in LaTeX. To make org
-   use this we add the following snippet.
-
-   #+BEGIN_SRC emacs-lisp
-   (eval-after-load 'org
-     '(add-to-list 'org-latex-packages-alist '("" "minted")))
-   (setq org-latex-listings 'minted)
-   #+END_SRC
-
-   Because [[https://code.google.com/p/minted/][Minted]] uses [[http://pygments.org][Pygments]] (an external process), we must add the
-   =-shell-escape= option to the =org-latex-pdf-process= commands. The
-   =tex-compile-commands= variable controls the default compile command for
-   Tex- and LaTeX-mode, we can add the flag with a rather dirty statement
-   (if anyone finds a nicer way to do this, please let me know).
-
-   #+BEGIN_SRC emacs-lisp
-   (eval-after-load 'tex-mode
-     '(setcar (cdr (cddaar tex-compile-commands)) " -shell-escape "))
-   #+END_SRC
-
-   When exporting from Org to LaTeX, use ~latexmk~ for compilation.
-
-   #+BEGIN_SRC emacs-lisp
-   (eval-after-load 'ox-latex
-     '(setq org-latex-pdf-process
-            '("latexmk -pdflatex='pdflatex -shell-escape -interaction nonstopmode' -pdf -f %f")))
-   #+END_SRC
-
-   For my thesis, I need to use our university's LaTeX class, this snippet
-   makes that class available.
-
-   #+BEGIN_SRC emacs-lisp
-   (eval-after-load "ox-latex"
-     '(progn
-        (add-to-list 'org-latex-classes
-                     '("ifimaster"
-                       "\\documentclass{ifimaster}
-   [DEFAULT-PACKAGES]
-   [PACKAGES]
-   [EXTRA]
-   \\usepackage{babel,csquotes,ifimasterforside,url,varioref}"
-                      ("\\chapter{%s}" . "\\chapter*{%s}")
-                      ("\\section{%s}" . "\\section*{%s}")
-                      ("\\subsection{%s}" . "\\subsection*{%s}")
-                      ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                      ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                      ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-        (add-to-list 'org-latex-classes
-                     '("easychair" "\\documentclass{easychair}"
-                      ("\\section{%s}" . "\\section*{%s}")
-                      ("\\subsection{%s}" . "\\subsection*{%s}")
-                      ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                      ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                      ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-       (custom-set-variables '(org-export-allow-bind-keywords t))))
-   #+END_SRC
-
 ** Markdown
 
    This makes =.md=-files open in =markdown-mode=.
@@ -1260,36 +1070,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
                (local-set-key (kbd "C-c b") 'insert-markdown-inline-math-block)) t)
    #+END_SRC
 
-** Haskell
-
-   =haskell-doc-mode= is similar to =eldoc=, it displays documentation in
-   the echo area. Haskell has several indentation modes - I prefer using
-   =haskell-indent=.
-
-   #+BEGIN_SRC emacs-lisp
-   (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-   (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
-   #+END_SRC
-
-** Maude
-
-   Use =---= for comments in Maude.
-
-   #+BEGIN_SRC emacs-lisp
-   (add-hook 'maude-mode-hook
-             (lambda ()
-               (setq-local comment-start "---")))
-   #+END_SRC
-
-** Matlab
-
-   =Matlab-mode= works pretty good out of the box, but we can do without the
-   splash screen.
-
-   #+BEGIN_SRC emacs-lisp
-   (eval-after-load 'matlab
-     '(add-to-list 'matlab-shell-command-switches "-nosplash"))
-   #+END_SRC
 * Key bindings
 
   Inspired by [[http://stackoverflow.com/questions/683425/globally-override-key-binding-in-emacs][this StackOverflow post]] I keep a =custom-bindings-map= that
