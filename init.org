@@ -7,7 +7,7 @@
 #+PROPERTY: header-args :tangle yes
 
 * About
-This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][larstvei/dot-emacs]].
+  This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][larstvei/dot-emacs]].
 
 * Configurations
 ** Meta
@@ -123,7 +123,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
    (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/"))
    (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
-
    (add-to-list 'package-pinned-packages '(org . "org") t)
    #+END_SRC
 
@@ -156,12 +155,14 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
              org                  ; Outline-based notes management and organizer
              org-plus-contrib     ; contains these files plus all contribs files
              org-ref              ; citations bibliographies in org-mode
-             paredit              ; minor mode for editing 
+             org-brain            ; a personal knowledge management system
+             paredit              ; minor mode for editing
              projectile           ; Manage and navigate projects in Emacs easily
              slime                ; Superior Lisp Interaction Mode for Emacs
              try                  ; Try out Emacs packages
              monokai-theme        ; monokai theme
              writeroom-mode       ; a mode that good for writing
+             pocket-reader        ; a client for Pocket (getpocket.com)
              which-key)))         ; Display available keybindings in popup
      (ignore-errors ;; This package is only relevant for Mac OS X.
        (when (memq window-system '(mac ns))
@@ -408,7 +409,7 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
                                           ("phi" . ?φ)
                                           ("psi" . ?ψ)))
    #+END_SRC
-   
+
 ** Completion
 
    [[https://github.com/auto-complete/auto-complete][Auto-Complete]] has been a part of my config for years, but I want to try
@@ -496,99 +497,101 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
      (setq calendar-intermonth-text
            (and arg
                 '(propertize
-                  (format
-                   "%2d"
-                   (car (calendar-iso-from-absolute
-                         (calendar-absolute-from-gregorian
-                          (list month day year)))))
-                  'font-lock-face 'calendar-iso-week-face))))
-   #+END_SRC
+                 (format
+                  "%2d"
+                  (car (calendar-iso-from-absolute
+                        (calendar-absolute-from-gregorian
+                         (list month day year)))))
+                 'font-lock-face 'calendar-iso-week-face))))
+  #+END_SRC
 
-   Evaluate the =calendar-show-week= function.
+  Evaluate the =calendar-show-week= function.
 
-   #+BEGIN_SRC emacs-lisp
-   (calendar-show-week t)
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (calendar-show-week t)
+  #+END_SRC
 
-   Set Monday as the first day of the week, and set my location.
+  Set Monday as the first day of the week, and set my location.
 
-   #+BEGIN_SRC emacs-lisp
-   (setq calendar-week-start-day 1
-         calendar-latitude 60.0
-         calendar-longitude 10.7
-         calendar-location-name "Oslo, Norway")
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (setq calendar-week-start-day 1
+        calendar-latitude 60.0
+        calendar-longitude 10.7
+        calendar-location-name "Oslo, Norway")
+  #+END_SRC
 
 ** Flyspell
 
-   Flyspell offers on-the-fly spell checking. We can enable flyspell for all
-   text-modes with this snippet.
+  Flyspell offers on-the-fly spell checking. We can enable flyspell for all
+  text-modes with this snippet.
 
-   #+BEGIN_SRC emacs-lisp
-   (add-hook 'text-mode-hook 'turn-on-flyspell)
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (add-hook 'text-mode-hook 'turn-on-flyspell)
+  #+END_SRC
 
-   To use flyspell for programming there is =flyspell-prog-mode=, that only
-   enables spell checking for comments and strings. We can enable it for all
-   programming modes using the =prog-mode-hook=.
+  To use flyspell for programming there is =flyspell-prog-mode=, that only
+  enables spell checking for comments and strings. We can enable it for all
+  programming modes using the =prog-mode-hook=.
 
-   #+BEGIN_SRC emacs-lisp
-   (add-hook 'prog-mode-hook 'flyspell-prog-mode)
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+  #+END_SRC
 
-   When working with several languages, we should be able to cycle through
-   the languages we most frequently use. Every buffer should have a separate
-   cycle of languages, so that cycling in one buffer does not change the
-   state in a different buffer (this problem occurs if you only have one
-   global cycle). We can implement this by using a [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Closures.html][closure]].
+  When working with several languages, we should be able to cycle through
+  the languages we most frequently use. Every buffer should have a separate
+  cycle of languages, so that cycling in one buffer does not change the
+  state in a different buffer (this problem occurs if you only have one
+  global cycle). We can implement this by using a [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Closures.html][closure]].
 
-   #+BEGIN_SRC emacs-lisp
-   (defun cycle-languages ()
-     "Changes the ispell dictionary to the first element in
-   ISPELL-LANGUAGES, and returns an interactive function that cycles
-   the languages in ISPELL-LANGUAGES when invoked."
-     (lexical-let ((ispell-languages '#1=("american" "norsk" . #1#)))
-       (ispell-change-dictionary (car ispell-languages))
-       (lambda ()
-         (interactive)
-         ;; Rotates the languages cycle and changes the ispell dictionary.
-         (ispell-change-dictionary
-          (car (setq ispell-languages (cdr ispell-languages)))))))
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (defun cycle-languages ()
+    "Changes the ispell dictionary to the first element in
+  ISPELL-LANGUAGES, and returns an interactive function that cycles
+  the languages in ISPELL-LANGUAGES when invoked."
+    (lexical-let ((ispell-languages '#1=("american" "norsk" . #1#)))
+      (ispell-change-dictionary (car ispell-languages))
+      (lambda ()
+        (interactive)
+        ;; Rotates the languages cycle and changes the ispell dictionary.
+        (ispell-change-dictionary
+         (car (setq ispell-languages (cdr ispell-languages)))))))
+  #+END_SRC
 
-   =flyspell= signals an error if there is no spell-checking tool is
-   installed. We can advice =turn-on-flyspell= and =flyspell-prog-mode= to
-   only try to enable =flyspell= if a spell-checking tool is available. Also
-   we want to enable cycling the languages by typing =C-c l=, so we bind the
-   function returned from =cycle-languages=.
+  =flyspell= signals an error if there is no spell-checking tool is
+  installed. We can advice =turn-on-flyspell= and =flyspell-prog-mode= to
+  only try to enable =flyspell= if a spell-checking tool is available. Also
+  we want to enable cycling the languages by typing =C-c l=, so we bind the
+  function returned from =cycle-languages=.
 
-   #+BEGIN_SRC emacs-lisp
-   (defadvice turn-on-flyspell (before check nil activate)
-     "Turns on flyspell only if a spell-checking tool is installed."
-     (when (executable-find ispell-program-name)
-       (local-set-key (kbd "C-c l") (cycle-languages))))
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (defadvice turn-on-flyspell (before check nil activate)
+    "Turns on flyspell only if a spell-checking tool is installed."
+    (when (executable-find ispell-program-name)
+      (local-set-key (kbd "C-c l") (cycle-languages))))
+  #+END_SRC
 
-   #+BEGIN_SRC emacs-lisp
-   (defadvice flyspell-prog-mode (before check nil activate)
-     "Turns on flyspell only if a spell-checking tool is installed."
-     (when (executable-find ispell-program-name)
-       (local-set-key (kbd "C-c l") (cycle-languages))))
-   #+END_SRC
+  #+BEGIN_SRC emacs-lisp
+  (defadvice flyspell-prog-mode (before check nil activate)
+    "Turns on flyspell only if a spell-checking tool is installed."
+    (when (executable-find ispell-program-name)
+      (local-set-key (kbd "C-c l") (cycle-languages))))
+  #+END_SRC
 
 ** Org
-
+   #+BEGIN_SRC emacs-lisp
+   (setq org-directory "~/Dropbox/notebook/")
+   #+END_SRC
    I use =org-agenda= along with =org-capture= for appointments and such.
 
    #+BEGIN_SRC emacs-lisp
-   (setq org-agenda-files '("~/Dropbox/agenda.org")  ; A list of agenda files
+   (setq org-agenda-files '("~/Dropbox/notebook/agenda.org")  ; A list of agenda files
          org-agenda-default-appointment-duration 120 ; 2 hours appointments
          org-capture-templates                       ; Template for adding tasks
-         '(("t" "Task" entry (file+headline "~/Dropbox/agenda.org" "Task")
+         '(("t" "Task" entry (file+headline "~/Dropbox/notebook/agenda.org" "Task")
             "** TODO %?" :prepend t)
-           ("m" "Todo" entry (file+olp "~/Dropbox/agenda.org" "Task" "Todo")
+           ("m" "Todo" entry (file+olp "~/Dropbox/notebook/agenda.org" "Task" "Todo")
             "*** TODO %?" :prepend t)
-           ("a" "Note" entry (file+headline "~/Dropbox/agenda.org" "Note")
+           ("a" "Note" entry (file+headline "~/Dropbox/notebook/agenda.org" "Note")
             "** %?\n   SCHEDULED: %T" :prepend t)))
    #+END_SRC
 
@@ -623,6 +626,25 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
    )
    #+END_SRC
 
+   To enable automatically encrypt entries tagged with `crypt`
+   #+BEGIN_SRC emacs-lisp
+;; org-mode 設定
+(require 'org-crypt)
+
+;; 當被加密的部份要存入硬碟時，自動加密回去
+(org-crypt-use-before-save-magic)
+
+;; 設定要加密的 tag 標籤為 secret
+(setq org-crypt-tag-matcher "secret")
+
+;; 避免 secret 這個 tag 被子項目繼承 造成重複加密
+;; (但是子項目還是會被加密喔)
+(setq org-tags-exclude-from-inheritance (quote ("secret")))
+
+;; 用於加密的 GPG 金鑰
+;; 可以設定任何 ID 或是設成 nil 來使用對稱式加密 (symmetric encryption)
+(setq org-crypt-key nil)
+   #+END_SRC
 ** Interactive functions
    <<sec:defuns>>
 
@@ -727,26 +749,6 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
        (untabify beg (if (< end (point-max)) end (point-max)))))
    #+END_SRC
 
-   Org mode does currently not support synctex (which enables you to jump from
-   a point in your TeX-file to the corresponding point in the pdf), and it
-   [[http://comments.gmane.org/gmane.emacs.orgmode/69454][seems like a tricky problem]].
-
-   Calling this function from an org-buffer jumps to the corresponding section
-   in the exported pdf (given that the pdf-file exists), using pdf-tools.
-
-   #+BEGIN_SRC emacs-lisp
-   (defun org-sync-pdf ()
-     (interactive)
-     (let ((headline (nth 4 (org-heading-components)))
-           (pdf (concat (file-name-base (buffer-name)) ".pdf")))
-       (when (file-exists-p pdf)
-         (find-file-other-window pdf)
-         (pdf-links-action-perform
-          (cl-find headline (pdf-info-outline pdf)
-                   :key (lambda (alist) (cdr (assoc 'title alist)))
-                   :test 'string-equal)))))
-   #+END_SRC
-
 ** Advice
 
    An advice can be given to a function to make it behave differently. This
@@ -810,7 +812,7 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
 
 ** Others
    To create a empty buffer
-#+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
 (setq initial-major-mode (quote org-mode))
 (defun lanyitin-new-empty-buffer()
   "create a new empty buffer with org mode"
@@ -829,7 +831,7 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
     $buf
 ))
 (setq initial-buffer-choice 'lanyitin-new-empty-buffer)
-#+END_SRC
+   #+END_SRC
 
 * Mode specific
 ** Compilation
@@ -1086,34 +1088,34 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
 
 ** Bindings for [[https://github.com/abo-abo/define-word][define-word]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "C-c D") 'define-word-at-point)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for [[https://github.com/magnars/expand-region.el][expand-region]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "C->")  'er/expand-region)
   (define-key custom-bindings-map (kbd "C-<")  'er/contract-region)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for [[https://github.com/magnars/multiple-cursors.el][multiple-cursors]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "C-c e")  'mc/edit-lines)
   (define-key custom-bindings-map (kbd "C-c a")  'mc/mark-all-like-this)
   (define-key custom-bindings-map (kbd "C-c n")  'mc/mark-next-like-this)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for [[http://magit.github.io][Magit]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "C-c m") 'magit-status)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for [[http://company-mode.github.io/][company-mode]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key company-active-map (kbd "C-d") 'company-show-doc-buffer)
   (define-key company-active-map (kbd "C-n") 'company-select-next)
   (define-key company-active-map (kbd "C-p") 'company-select-previous)
@@ -1121,11 +1123,11 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
 
   (define-key company-mode-map (kbd "C-:") 'helm-company)
   (define-key company-active-map (kbd "C-:") 'helm-company)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for [[http://emacs-helm.github.io/helm/][Helm]]
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "C-c h")   'helm-command-prefix)
   (define-key custom-bindings-map (kbd "M-x")     'helm-M-x)
   (define-key custom-bindings-map (kbd "M-y")     'helm-show-kill-ring)
@@ -1140,11 +1142,11 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
   (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-i")   'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z")   'helm-select-action)
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for built-ins
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key custom-bindings-map (kbd "M-u")         'upcase-dwim)
   (define-key custom-bindings-map (kbd "M-c")         'capitalize-dwim)
   (define-key custom-bindings-map (kbd "M-l")         'downcase-dwim)
@@ -1159,11 +1161,11 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
   (define-key custom-bindings-map (kbd "C-c <right>") 'windmove-right)
   (define-key custom-bindings-map (kbd "C-c t")
     (lambda () (interactive) (org-agenda nil "n")))
-  #+END_SRC
+   #+END_SRC
 
 ** Bindings for functions defined [[sec:defuns][above]].
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-key global-map          (kbd "M-p")     'jump-to-previous-like-this)
   (define-key global-map          (kbd "M-n")     'jump-to-next-like-this)
   (define-key custom-bindings-map (kbd "M-,")     'jump-to-previous-like-this)
@@ -1188,13 +1190,13 @@ This is emacs configuration base on [[https://github.com/larstvei/dot-emacs][lar
        (focus-read-only-mode 1)))
   (with-eval-after-load 'org
     (define-key org-mode-map (kbd "C-'") 'org-sync-pdf))
-  #+END_SRC
+   #+END_SRC
 
-  Lastly we need to activate the map by creating and activating the
-  =minor-mode=.
+   Lastly we need to activate the map by creating and activating the
+   =minor-mode=.
 
-  #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp
   (define-minor-mode custom-bindings-mode
     "A mode that activates custom-bindings."
     t nil custom-bindings-map)
-  #+END_SRC
+   #+END_SRC

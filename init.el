@@ -26,7 +26,6 @@ tangled, and the tangled file is compiled."
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/"))
 (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
-
 (add-to-list 'package-pinned-packages '(org . "org") t)
 
 (let* ((package--builtins nil)
@@ -54,12 +53,14 @@ tangled, and the tangled file is compiled."
           org                  ; Outline-based notes management and organizer
           org-plus-contrib     ; contains these files plus all contribs files
           org-ref              ; citations bibliographies in org-mode
-          paredit              ; minor mode for editing 
+          org-brain            ; a personal knowledge management system
+          paredit              ; minor mode for editing
           projectile           ; Manage and navigate projects in Emacs easily
           slime                ; Superior Lisp Interaction Mode for Emacs
           try                  ; Try out Emacs packages
           monokai-theme        ; monokai theme
           writeroom-mode       ; a mode that good for writing
+          pocket-reader        ; a client for Pocket (getpocket.com)
           which-key)))         ; Display available keybindings in popup
   (ignore-errors ;; This package is only relevant for Mac OS X.
     (when (memq window-system '(mac ns))
@@ -250,12 +251,12 @@ tangled, and the tangled file is compiled."
   (setq calendar-intermonth-text
         (and arg
              '(propertize
-               (format
-                "%2d"
-                (car (calendar-iso-from-absolute
-                      (calendar-absolute-from-gregorian
-                       (list month day year)))))
-               'font-lock-face 'calendar-iso-week-face))))
+              (format
+               "%2d"
+               (car (calendar-iso-from-absolute
+                     (calendar-absolute-from-gregorian
+                      (list month day year)))))
+              'font-lock-face 'calendar-iso-week-face))))
 
 (calendar-show-week t)
 
@@ -290,14 +291,16 @@ the languages in ISPELL-LANGUAGES when invoked."
   (when (executable-find ispell-program-name)
     (local-set-key (kbd "C-c l") (cycle-languages))))
 
-(setq org-agenda-files '("~/Dropbox/agenda.org")  ; A list of agenda files
+(setq org-directory "~/Dropbox/notebook/")
+
+(setq org-agenda-files '("~/Dropbox/notebook/agenda.org")  ; A list of agenda files
       org-agenda-default-appointment-duration 120 ; 2 hours appointments
       org-capture-templates                       ; Template for adding tasks
-      '(("t" "Task" entry (file+headline "~/Dropbox/agenda.org" "Task")
+      '(("t" "Task" entry (file+headline "~/Dropbox/notebook/agenda.org" "Task")
          "** TODO %?" :prepend t)
-        ("m" "Todo" entry (file+olp "~/Dropbox/agenda.org" "Task" "Todo")
+        ("m" "Todo" entry (file+olp "~/Dropbox/notebook/agenda.org" "Task" "Todo")
          "*** TODO %?" :prepend t)
-        ("a" "Note" entry (file+headline "~/Dropbox/agenda.org" "Note")
+        ("a" "Note" entry (file+headline "~/Dropbox/notebook/agenda.org" "Note")
          "** %?\n   SCHEDULED: %T" :prepend t)))
 
 (setq org-src-fontify-natively t
@@ -318,6 +321,23 @@ the languages in ISPELL-LANGUAGES when invoked."
         (js .t)
     )
 )
+
+;; org-mode 設定
+(require 'org-crypt)
+
+;; 當被加密的部份要存入硬碟時，自動加密回去
+(org-crypt-use-before-save-magic)
+
+;; 設定要加密的 tag 標籤為 secret
+(setq org-crypt-tag-matcher "secret")
+
+;; 避免 secret 這個 tag 被子項目繼承 造成重複加密
+;; (但是子項目還是會被加密喔)
+(setq org-tags-exclude-from-inheritance (quote ("secret")))
+
+;; 用於加密的 GPG 金鑰
+;; 可以設定任何 ID 或是設成 nil 來使用對稱式加密 (symmetric encryption)
+(setq org-crypt-key nil)
 
 (defun cycle-spacing-delete-newlines ()
   "Removes whitespace before and after the point."
@@ -383,17 +403,6 @@ given, the duplicated region will be commented out."
     (indent-region beg end)
     (whitespace-cleanup)
     (untabify beg (if (< end (point-max)) end (point-max)))))
-
-(defun org-sync-pdf ()
-  (interactive)
-  (let ((headline (nth 4 (org-heading-components)))
-        (pdf (concat (file-name-base (buffer-name)) ".pdf")))
-    (when (file-exists-p pdf)
-      (find-file-other-window pdf)
-      (pdf-links-action-perform
-       (cl-find headline (pdf-info-outline pdf)
-                :key (lambda (alist) (cdr (assoc 'title alist)))
-                :test 'string-equal)))))
 
 (defadvice eval-last-sexp (around replace-sexp (arg) activate)
   "Replace sexp when called with a prefix argument."
