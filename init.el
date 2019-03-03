@@ -300,8 +300,11 @@ the languages in ISPELL-LANGUAGES when invoked."
          "** TODO %?" :prepend t)
         ("m" "Todo" entry (file+olp "~/Dropbox/notebook/agenda.org" "Task" "Todo")
          "*** TODO %?" :prepend t)
-        ("a" "Note" entry (file+headline "~/Dropbox/notebook/agenda.org" "Note")
-         "** %?\n   SCHEDULED: %T" :prepend t)))
+        ("a" "Note" entry (file+headline "~/Dropbox/notebook/Note.org" "Note")
+         "** %?\n   SCHEDULED: %T" :prepend t)
+        ("s" "Snippet" entry (file+headline "~/Dropbox/notebook/Note.org" "Snippet")
+         "** %?\n#+BEGIN_SRC %^{language||js|emacs lisp|python|sql|java|go}\n%^C\n#+END_SRC" :prepend t)
+       ))
 
 (setq org-src-fontify-natively t
       org-src-tab-acts-natively t
@@ -338,6 +341,19 @@ the languages in ISPELL-LANGUAGES when invoked."
 ;; 用於加密的 GPG 金鑰
 ;; 可以設定任何 ID 或是設成 nil 來使用對稱式加密 (symmetric encryption)
 (setq org-crypt-key nil)
+
+(setq org-brain-path "/wiki")
+  ;; For Evil users
+  (with-eval-after-load 'evil
+    (evil-set-initial-state 'org-brain-visualize-mode 'emacs))
+  :config
+  (setq org-id-track-globally t)
+  (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
+  (push '("b" "Brain" plain (function org-brain-goto-end)
+          "* %i%?" :empty-lines 1)
+        org-capture-templates)
+  (setq org-brain-visualize-default-choices 'all)
+  (setq org-brain-title-max-length 12)
 
 (defun cycle-spacing-delete-newlines ()
   "Removes whitespace before and after the point."
@@ -447,19 +463,15 @@ given, the duplicated region will be commented out."
 (defun lanyitin-new-empty-buffer()
   "create a new empty buffer with org mode"
   (interactive)
-  (let (($buf (generate-new-buffer "untitled")))
-    (switch-to-buffer $buf)
+  (with-current-buffer "*scratch*"
     (funcall initial-major-mode)
-;    (setq buffer-offer-save t)
     (let ((tplPath "~/.emacs.d/init-buffer.tpl.org"))
       (when (file-exists-p tplPath)
-       (with-current-buffer $buf
-         (insert-file-contents tplPath)
-       )
+       (insert-file-contents tplPath)
       )
     )
-    $buf
-))
+  ))
+
 (setq initial-buffer-choice 'lanyitin-new-empty-buffer)
 
 (add-hook 'compilation-filter-hook 'comint-truncate-buffer)

@@ -591,8 +591,11 @@
             "** TODO %?" :prepend t)
            ("m" "Todo" entry (file+olp "~/Dropbox/notebook/agenda.org" "Task" "Todo")
             "*** TODO %?" :prepend t)
-           ("a" "Note" entry (file+headline "~/Dropbox/notebook/agenda.org" "Note")
-            "** %?\n   SCHEDULED: %T" :prepend t)))
+           ("a" "Note" entry (file+headline "~/Dropbox/notebook/Note.org" "Note")
+            "** %?\n   SCHEDULED: %T" :prepend t)
+           ("s" "Snippet" entry (file+headline "~/Dropbox/notebook/Note.org" "Snippet")
+            "** %?\n#+BEGIN_SRC %^{language||js|emacs lisp|python|sql|java|go}\n%^C\n#+END_SRC" :prepend t)
+          ))
    #+END_SRC
 
    When editing org-files with source-blocks, we want the source blocks to
@@ -628,23 +631,39 @@
 
    To enable automatically encrypt entries tagged with `crypt`
    #+BEGIN_SRC emacs-lisp
-;; org-mode 設定
-(require 'org-crypt)
+   ;; org-mode 設定
+   (require 'org-crypt)
 
-;; 當被加密的部份要存入硬碟時，自動加密回去
-(org-crypt-use-before-save-magic)
+   ;; 當被加密的部份要存入硬碟時，自動加密回去
+   (org-crypt-use-before-save-magic)
 
-;; 設定要加密的 tag 標籤為 secret
-(setq org-crypt-tag-matcher "secret")
+   ;; 設定要加密的 tag 標籤為 secret
+   (setq org-crypt-tag-matcher "secret")
 
-;; 避免 secret 這個 tag 被子項目繼承 造成重複加密
-;; (但是子項目還是會被加密喔)
-(setq org-tags-exclude-from-inheritance (quote ("secret")))
+   ;; 避免 secret 這個 tag 被子項目繼承 造成重複加密
+   ;; (但是子項目還是會被加密喔)
+   (setq org-tags-exclude-from-inheritance (quote ("secret")))
 
-;; 用於加密的 GPG 金鑰
-;; 可以設定任何 ID 或是設成 nil 來使用對稱式加密 (symmetric encryption)
-(setq org-crypt-key nil)
+   ;; 用於加密的 GPG 金鑰
+   ;; 可以設定任何 ID 或是設成 nil 來使用對稱式加密 (symmetric encryption)
+   (setq org-crypt-key nil)
    #+END_SRC
+
+   set up org-brain
+#+BEGIN_SRC emacs-lisp
+(setq org-brain-path "/wiki")
+  ;; For Evil users
+  (with-eval-after-load 'evil
+    (evil-set-initial-state 'org-brain-visualize-mode 'emacs))
+  :config
+  (setq org-id-track-globally t)
+  (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
+  (push '("b" "Brain" plain (function org-brain-goto-end)
+          "* %i%?" :empty-lines 1)
+        org-capture-templates)
+  (setq org-brain-visualize-default-choices 'all)
+  (setq org-brain-title-max-length 12)
+#+END_SRC
 ** Interactive functions
    <<sec:defuns>>
 
@@ -817,19 +836,15 @@
 (defun lanyitin-new-empty-buffer()
   "create a new empty buffer with org mode"
   (interactive)
-  (let (($buf (generate-new-buffer "untitled")))
-    (switch-to-buffer $buf)
+  (with-current-buffer "*scratch*"
     (funcall initial-major-mode)
-;    (setq buffer-offer-save t)
     (let ((tplPath "~/.emacs.d/init-buffer.tpl.org"))
       (when (file-exists-p tplPath)
-       (with-current-buffer $buf
-         (insert-file-contents tplPath)
-       )
+       (insert-file-contents tplPath)
       )
     )
-    $buf
-))
+  ))
+
 (setq initial-buffer-choice 'lanyitin-new-empty-buffer)
    #+END_SRC
 
