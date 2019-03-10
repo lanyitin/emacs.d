@@ -41,6 +41,8 @@
    (load-file (concat user-emacs-directory "init.el"))
    ;; finally byte-compile it
    (byte-compile-file (concat user-emacs-directory "init.el"))
+
+   (setq org-log-done t)
    #+END_SRC
 
    It tangles the org-file, so that this file is overwritten with the actual
@@ -126,44 +128,50 @@
    (add-to-list 'package-pinned-packages '(org . "org") t)
    #+END_SRC
 
+
    The configuration assumes that the packages listed below are
    installed. To ensure we install missing packages if they are missing.
 
    #+BEGIN_SRC emacs-lisp
    (let* ((package--builtins nil)
           (packages
-           '(auto-compile         ; automatically compile Emacs Lisp libraries
-             company              ; Modular text completion framework
-             define-word          ; display the definition of word at point
-             diminish             ; Diminished modes from modeline
-             drag-stuff           ; Drag stuff around in Emacs
-             expand-region        ; Increase selected region by semantic units
-             focus                ; Dim color of text in surrounding sections
-             idle-require         ; load elisp libraries while Emacs is idle
-             git-gutter-fringe    ; Fringe version of git-gutter.el
-             golden-ratio         ; Automatic resizing windows to golden ratio
-             helm                 ; Incremental and narrowing framework
-             helm-ag              ; the silver searcher with helm interface
-             helm-company         ; Helm interface for company-mode
-             helm-dash            ; Offline documentation using Dash docsets.
-             helm-projectile      ; Helm integration for Projectile
-             helm-swoop           ; Efficiently hopping squeezed lines
-             magit                ; control Git from Emacs
-             markdown-mode        ; Emacs Major mode for Markdown-formatted files
-             multiple-cursors     ; Multiple cursors for Emacs
-             olivetti             ; Minor mode for a nice writing environment
-             org                  ; Outline-based notes management and organizer
-             org-plus-contrib     ; contains these files plus all contribs files
-             org-ref              ; citations bibliographies in org-mode
-             org-brain            ; a personal knowledge management system
-             paredit              ; minor mode for editing
-             projectile           ; Manage and navigate projects in Emacs easily
-             slime                ; Superior Lisp Interaction Mode for Emacs
-             try                  ; Try out Emacs packages
-             monokai-theme        ; monokai theme
-             writeroom-mode       ; a mode that good for writing
-             pocket-reader        ; a client for Pocket (getpocket.com)
-             which-key)))         ; Display available keybindings in popup
+           '(auto-compile           ; automatically compile Emacs Lisp libraries
+             company                ; Modular text completion framework
+             company-go             ; company for golang
+             define-word            ; display the definition of word at point
+             diminish               ; Diminished modes from modeline
+             drag-stuff             ; Drag stuff around in Emacs
+             expand-region          ; Increase selected region by semantic units
+             focus                  ; Dim color of text in surrounding sections
+             idle-require           ; load elisp libraries while Emacs is idle
+             git-gutter-fringe      ; Fringe version of git-gutter.el
+             golden-ratio           ; Automatic resizing windows to golden ratio
+             helm                   ; Incremental and narrowing framework
+             helm-ag                ; the silver searcher with helm interface
+             helm-company           ; Helm interface for company-mode
+             helm-dash              ; Offline documentation using Dash docsets.
+             helm-projectile        ; Helm integration for Projectile
+             helm-swoop             ; Efficiently hopping squeezed lines
+             magit                  ; control Git from Emacs
+             markdown-mode          ; Emacs Major mode for Markdown-formatted files
+             multiple-cursors       ; Multiple cursors for Emacs
+             olivetti               ; Minor mode for a nice writing environment
+             org                    ; Outline-based notes management and organizer
+             org-plus-contrib       ; contains these files plus all contribs files
+             org-ref                ; citations bibliographies in org-mode
+             org-brain              ; a personal knowledge management system
+             org-journal            ; Org-journal is a set of functions to maintain a simple personal diary / journal in Emacs.
+             paredit                ; minor mode for editing
+             projectile             ; Manage and navigate projects in Emacs easily
+             slime                  ; Superior Lisp Interaction Mode for Emacs
+             try                    ; Try out Emacs packages
+             monokai-theme          ; monokai theme
+             writeroom-mode         ; a mode that good for writing
+             pocket-reader          ; a client for Pocket (getpocket.com)
+             go-guru                ; go guru wrapper
+             flycheck               ; syntax checker
+             flycheck-golangci-lint ; flycheck extension for golang
+             which-key)))           ; Display available keybindings in popup
      (ignore-errors ;; This package is only relevant for Mac OS X.
        (when (memq window-system '(mac ns))
          (push 'exec-path-from-shell packages)
@@ -330,6 +338,11 @@
        '((auto-compile-on-save-mode 1))))  ; compile .el files on save
    (when (version<= "26.0.50" emacs-version )
       (global-display-line-numbers-mode))
+   #+END_SRC
+
+   To disable company mode in shell
+   #+BEGIN_SRC emacs-lisp
+   (add-hook 'shell-mode-hook (lambda () (company-mode -1)) 'append)
    #+END_SRC
 
 ** Visual
@@ -576,7 +589,14 @@
     (when (executable-find ispell-program-name)
       (local-set-key (kbd "C-c l") (cycle-languages))))
   #+END_SRC
+** Flycheck
+   =flycheck= can be used as global mode
 
+   #+BEGIN_SRC emacs-lisp
+   (add-hook 'after-init-hook #'global-flycheck-mode)
+   (eval-after-load 'flycheck                                       
+      '(add-hook 'flycheck-mode-hook #'flycheck-golangci-lint-setup))
+   #+END_SRC
 ** Org
    #+BEGIN_SRC emacs-lisp
    (setq org-directory "~/Dropbox/notebook/")
@@ -584,16 +604,16 @@
    I use =org-agenda= along with =org-capture= for appointments and such.
 
    #+BEGIN_SRC emacs-lisp
-   (setq org-agenda-files '("~/Dropbox/notebook/agenda.org")  ; A list of agenda files
+   (setq org-agenda-files '("~/Dropbox/notebook/inbox.org")  ; A list of agenda files
          org-agenda-default-appointment-duration 120 ; 2 hours appointments
          org-capture-templates                       ; Template for adding tasks
-         '(("t" "Task" entry (file+headline "~/Dropbox/notebook/agenda.org" "Task")
+         '(("t" "Task" entry (file+headline "~/Dropbox/notebook/inbox.org" "Task")
             "** TODO %?" :prepend t)
-           ("m" "Todo" entry (file+olp "~/Dropbox/notebook/agenda.org" "Task" "Todo")
+           ("m" "Todo" entry (file+olp "~/Dropbox/notebook/inbox.org" "Task" "Todo")
             "*** TODO %?" :prepend t)
-           ("a" "Note" entry (file+headline "~/Dropbox/notebook/Note.org" "Note")
+           ("a" "Note" entry (file+headline "~/Dropbox/notebook/note.org" "Note")
             "** %?\n   SCHEDULED: %T" :prepend t)
-           ("s" "Snippet" entry (file+headline "~/Dropbox/notebook/Note.org" "Snippet")
+           ("s" "Snippet" entry (file+headline "~/Dropbox/notebook/note.org" "Snippet")
             "** %?\n#+BEGIN_SRC %^{language||js|emacs lisp|python|sql|java|go}\n%^C\n#+END_SRC" :prepend t)
           ))
    #+END_SRC
@@ -624,7 +644,8 @@
        '(
            (shell . t)
            (emacs-lisp . t)
-           (js .t)
+           (js . t)
+           (calc . t)
        )
    )
    #+END_SRC
@@ -651,7 +672,7 @@
 
    set up org-brain
 #+BEGIN_SRC emacs-lisp
-(setq org-brain-path "/wiki")
+(setq org-brain-path (concat org-directory "/wiki"))
   ;; For Evil users
   (with-eval-after-load 'evil
     (evil-set-initial-state 'org-brain-visualize-mode 'emacs))
@@ -664,6 +685,20 @@
   (setq org-brain-visualize-default-choices 'all)
   (setq org-brain-title-max-length 12)
 #+END_SRC
+** Journal
+   Note: you have to customize org-journal-dir before you load org-journal as
+   otherwise Emacs would not set the mode correctly.
+   #+BEGIN_SRC emacs-lisp
+   (setq org-journal-dir "~/Dropbox/notebook/journal")
+   (setq org-journal-file-format "%Y%m%d.org")
+   (require 'org-journal)
+   #+END_SRC
+
+** Projectile
+    #+BEGIN_SRC
+    (projectile-mode +1)
+    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+    #+END_SRC
 ** Interactive functions
    <<sec:defuns>>
 

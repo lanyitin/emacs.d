@@ -1,3 +1,5 @@
+*bold*, /italic/, _underlined_, =verbatim= and ~code~, ‘+strike-through+’. 
+
 * Navigation
 #+BEGIN_EXAMPLE
               M-v
